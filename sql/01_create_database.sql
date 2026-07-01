@@ -1,0 +1,1 @@
+CREATE DATABASE personal_spending_and_inflation_data;
