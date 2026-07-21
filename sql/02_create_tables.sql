@@ -4,10 +4,10 @@
 
 CREATE TABLE finance.bank_transactions (
   
-  transactions_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  transaction_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   
-  operation_date DATE NOT NULL,
-  transaction_date DATE NOT NULL, 
+  operation_date DATE,
+  transaction_date DATE, 
   
   account_name VARCHAR(100),
   account_number VARCHAR(30),
@@ -27,9 +27,9 @@ CREATE TABLE finance.bank_transactions (
 
   mcc INTEGER,
 
-  transactions_type VARCHAR(50),
+  transaction_type VARCHAR(50),
 
-  comment TEXT,
+  transaction_comment TEXT,
 
   bonus_value NUMERIC(10,2),
   bonus_title VARCHAR(100)
