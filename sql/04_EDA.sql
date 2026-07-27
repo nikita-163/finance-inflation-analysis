@@ -108,3 +108,85 @@ WHERE "period" IS NULL;
 
 -- Периодов без даты не выявлено.
 
+-- ============================================================
+-- 2. Исследование полноты данных.
+-- ============================================================
+
+-- ==========================================
+-- Таблица банковских операций
+-- ==========================================
+
+-- Вопрос:
+-- Есть ли NULL-значения в критичных полях таблицы bank_transactions — а именно в operation_date и amount?
+
+SELECT
+    COUNT(*) FILTER (WHERE operation_date IS NULL) AS total_missing_date,
+    COUNT(*) FILTER (WHERE amount IS NULL) AS total_missing_amount
+FROM finance.bank_transactions;
+
+-- NULL-значений в критичных полях таблицы bank_transactions не выявлено.
+
+---------------------------------------------------------------
+
+-- Вопрос:
+-- Есть ли пропущенные месяцы во временном ряду?
+
+WITH generate_months AS (
+    SELECT generate_series(
+        (SELECT DATE_TRUNC('month', MIN(operation_date)) FROM finance.bank_transactions)::date,
+        (SELECT DATE_TRUNC('month', MAX(operation_date)) FROM finance.bank_transactions)::date,
+        '1 month'::interval
+    )::date AS month
+)
+
+SELECT
+    gm.month,
+    COUNT(bt.operation_date) AS month_total_operations
+FROM generate_months gm 
+    LEFT JOIN finance.bank_transactions bt 
+        ON gm.month = DATE_TRUNC('month', bt.operation_date)
+GROUP BY gm.month 
+ORDER BY gm.month DESC;   
+
+-- Пропущенных месяцев нет — каждый из 13 месяцев содержит хотя бы одну операцию. 
+-- Обнаружен большой разброс активности по месяцам (от 5 до 118 операций) — требует проверки на этапе анализа аномалий (блок 4).
+
+-- ==========================================
+-- Таблица макроэкономических показателей
+-- ==========================================
+
+-- Вопрос:
+-- Есть ли NULL-значения в критичных полях таблицы inflation  — а именно в "period", inflation_rate и key_rate?
+
+SELECT
+    COUNT(*) FILTER (WHERE "period" IS NULL) AS total_missing_period,
+    COUNT(*) FILTER (WHERE inflation_rate IS NULL) AS total_missing_inflation_indicator, 
+    COUNT(*) FILTER (WHERE key_rate IS NULL) AS total_missing_key_rate_indicator
+FROM finance.inflation;
+
+-- NULL-значений в критичных полях таблицы inflation не выявлено. 
+
+---------------------------------------------------------------
+
+-- Вопрос:
+-- Есть ли пропущенные периоды во временном ряду?
+
+WITH generate_months AS (
+    SELECT generate_series(
+        (SELECT DATE_TRUNC('month', MIN("period")) FROM finance.inflation)::date,
+        (SELECT DATE_TRUNC('month', MAX("period")) FROM finance.inflation)::date,
+        '1 month'::interval
+    )::date AS month
+)
+
+SELECT
+    gm.month,
+    COUNT(i."period") AS period_total_indicators
+FROM generate_months gm 
+    LEFT JOIN finance.inflation i 
+        ON gm.month = DATE_TRUNC('month', i."period")
+GROUP BY gm.month 
+ORDER BY gm.month DESC;   
+
+-- Пропущенных периодов нет — каждый из 12 периодов содержит макроэкономические показатели.
+
