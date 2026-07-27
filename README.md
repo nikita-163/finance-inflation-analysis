@@ -59,7 +59,8 @@ finance-inflation-analysis/
 │   ├── 01a_create_schema.sql
 │   ├── 02_create_tables.sql
 │   ├── 03_data_quality_check.sql
-│   ├── 04_data_cleaning.sql
+│   ├── 04_EDA.sql
+│   ├── 04a_data_cleaning.sql
 │   ├── 05_analysis_queries.sql
 │   └── 06_views.sql 
 │
