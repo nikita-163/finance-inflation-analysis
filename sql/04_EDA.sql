@@ -190,3 +190,78 @@ ORDER BY gm.month DESC;
 
 -- Пропущенных периодов нет — каждый из 12 периодов содержит макроэкономические показатели.
 
+-- ============================================================
+-- 3. Исследование уникальности данных.
+-- ============================================================
+
+-- ==========================================
+-- Таблица банковских операций
+-- ==========================================
+
+-- Вопрос:
+-- Есть ли полные дубликаты строк в таблице bank_transactions?
+
+SELECT
+    operation_date,
+    amount,
+    category,
+    bonus_value,
+    merchant, 
+    COUNT(*) AS total_count_duplicate_operations
+FROM finance.bank_transactions
+GROUP BY operation_date, amount, category, bonus_value, merchant
+HAVING COUNT(*) > 1;
+
+-- Запрос выявил строки с полным совпадением по дате, сумме, категории, кешбэку и продавцу.
+-- Данные строки нужно проверить через вывод полной строки со свеми столбцами таблицы.
+
+SELECT
+    *,
+    COUNT(*) OVER (PARTITION BY operation_date, amount, category, bonus_value, merchant) AS total_count_duplicate_operations_2
+FROM finance.bank_transactions
+WHERE category IN ('Фастфуд', 'Продукты', 'Переводы')
+ORDER BY total_count_duplicate_operations_2 DESC, operation_date DESC; 
+
+-- Дополнительная проверка не дала новой информации, так как данные объективно одинаковые.
+-- Но вспомнив по памяти о данных операциях, можно сделать вывод:
+-- все совпадения соответствуют реальным повторным событиям.
+-- Полных дубликатов строк не выявлено.
+
+-- Вопрос:
+-- Cогласованы ли в таблице справочные значения?
+
+SELECT
+    'raw' AS metric_type,
+    COUNT(DISTINCT category) AS total_unique_category,
+    COUNT(DISTINCT merchant) AS total_unique_merchant,
+    COUNT(DISTINCT status) AS total_unique_status     
+FROM finance.bank_transactions
+
+UNION ALL
+
+SELECT
+    'normalized' AS metric_type,
+    COUNT(DISTINCT LOWER(TRIM(category))) AS total_normalized_unique_category,
+    COUNT(DISTINCT LOWER(TRIM(merchant))) AS total_normalized_unique_merchant,
+    COUNT(DISTINCT LOWER(TRIM(status))) AS total_normalized_unique_status
+FROM finance.bank_transactions;
+
+-- Количество уникальных категорий(25), продавцов(139), статусов(3) совпадает с количеством нормализованных уникальных категорий(25), продавцов(139), статусов(3). 
+-- Все справочные значения согласованы.
+
+-- ==========================================
+-- Таблица макроэкономических показателей
+-- ==========================================
+
+-- Вопрос:
+-- Есть ли полные дубликаты строк в таблице inflation?
+
+SELECT
+    "period",
+    COUNT(*) AS total_count_unique_periods
+FROM finance.inflation
+GROUP BY "period"
+HAVING COUNT(*) > 1;
+
+-- Полных дубликатов строк не выявлено.
+
