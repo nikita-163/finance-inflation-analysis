@@ -398,8 +398,8 @@ SELECT
 FROM generate_months gm 
     LEFT JOIN finance.bank_transactions bt 
         ON gm.month = DATE_TRUNC('month', bt.operation_date)
-        AND transaction_type = 'Списание' 
-        AND merchant NOT IN ('Между своими счетами', 'Никита Сергеевич Р')
+        AND bt.transaction_type = 'Списание' 
+        AND bt.merchant NOT IN ('Между своими счетами', 'Никита Сергеевич Р')
 GROUP BY gm.month 
 ORDER BY gm.month DESC;   
 
@@ -470,6 +470,20 @@ FROM finance.bank_transactions;
 -- ==========================================
 -- Таблица макроэкономических показателей
 -- ==========================================
+
+-- Вопрос:
+-- Есть ли в inflation_rate и key_rate значения за пределами реалистичного диапазона?
+
+SELECT
+    COUNT(*) FILTER (WHERE inflation_rate < 0 OR inflation_rate > 20) AS total_count_unrealistic_inflation_rate,
+    COUNT(*) FILTER (WHERE key_rate < 0 OR key_rate > 30) AS total_count_unrealistic_key_rate
+FROM finance.inflation;
+
+-- Показатели 20% и 30% для инфляции и ключевой ставки соответственно взяты с запасом от максимально зафиксированного значения каждого показателя.
+-- Макроэкономических показателей с отрицательным значением не обнаружено. Все показатели положительные.
+-- Все показатели инфляции и ключевой ставки находятся в границах реальных значений.
+
+---------------------------------------------------------------
 
 -- Вопрос:
 -- Есть ли в таблице inflation периоды с датой позже момента выгрузки данных ЦБ?
