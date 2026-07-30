@@ -325,6 +325,88 @@ ORDER BY amount DESC, operation_date DESC;
 -- операция в категории "Продукты" — закупка продуктов на месяц вперёд.
 -- Аномалий не выявлено.
 
+---------------------------------------------------------------
+
+-- Вопрос: 
+-- Есть ли отрицательные значения в bonus_value?
+
+SELECT
+    COUNT(*) FILTER (WHERE bonus_value < 0) AS negative_bonus_value
+FROM finance.bank_transactions;
+
+-- Отрицательных значений в поле bonus_value не выявлено.
+
+---------------------------------------------------------------
+
+-- Вопрос: 
+-- Есть ли аномально большие или маленькие значения относительно типичного размера кешбэка?
+
+SELECT
+    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY bonus_value) AS percentile_95,
+    PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY bonus_value) AS percentile_75,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY bonus_value) AS percentile_50,
+    PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY bonus_value) AS percentile_25,
+    ROUND(MAX(bonus_value), 2) AS max_bonus_value,
+    ROUND(AVG(bonus_value), 2) AS avg_bonus_value,
+    ROUND(MIN(bonus_value), 2) AS min_bonus_value
+FROM finance.bank_transactions;
+
+-- Отдельная фильтрация по transaction_type/merchant не требуется, так как в блоке 5 установлено, что кешбэк отсутствует у переводов и пополнений.
+-- Из запроса можно сделать вывод, что распределение значений кешбэка скошено в сторону крупных сумм.
+-- Среднее значение превышает медианное значение примерно в 4.75 раза, что указывает на наличие
+-- небольшого числа операций с крупным кешбэком, утягивающих среднее вверх. 
+-- 95% операций с кешбэком укладываются в границу, которая более чем в 2.19 раза ниже максимального значения кешбэка в операции.
+-- То есть основная масса значений кешбэка сосредоточена в невысоком диапазоне, а хвост из 5% операций 
+-- требует отдельного разбора на предмет наличия крупного кэшбэка или потенциальных аномалий.
+
+---------------------------------------------------------------
+
+-- Вопрос:
+-- Какие конкретно операции с кэшбэком превышают порог 95-ого перцентиля? Это объясняет высокое среднее значение по всем операциям с кешбеком.
+
+SELECT
+    *
+FROM finance.bank_transactions
+WHERE bonus_value > (    
+    SELECT 
+        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY bonus_value) 
+    FROM finance.bank_transactions) 
+ORDER BY bonus_value DESC, operation_date DESC;
+
+-- Порог 95-ого перцентиля превышают 2 операции с кешбэком около 50% от суммы. 
+-- Первая операция с кешбэком 50% — акция на доставку еды от банка, как итог операция с реальным кешбэком.
+-- Вторая операция с кешбэком 50% — акция на доставку продуктов от магазина, как итог операция с реальным кешбэком.
+-- Из подробного анализа конкретных строк следует вывод, что аномалий не выявлено.
+
+---------------------------------------------------------------
+
+-- Вопрос:
+-- Является ли разброс количества операций по месяцам (от 5 до 118) реальной картиной активности, 
+-- или связан с нерелевантными для анализа расходов операциями?
+
+WITH generate_months AS (
+    SELECT generate_series(
+        (SELECT DATE_TRUNC('month', MIN(operation_date)) FROM finance.bank_transactions)::date,
+        (SELECT DATE_TRUNC('month', MAX(operation_date)) FROM finance.bank_transactions)::date,
+        '1 month'::interval
+    )::date AS month
+)
+
+SELECT
+    gm.month,
+    COUNT(bt.operation_date) AS month_total_operations
+FROM generate_months gm 
+    LEFT JOIN finance.bank_transactions bt 
+        ON gm.month = DATE_TRUNC('month', bt.operation_date)
+        AND transaction_type = 'Списание' 
+        AND merchant NOT IN ('Между своими счетами', 'Никита Сергеевич Р')
+GROUP BY gm.month 
+ORDER BY gm.month DESC;   
+
+-- После фильтрации (только списания, без переводов между своими счетами) разброс по месяцам сохраняется (от 2 до 95 операций).
+-- Месяц с минимальной активностью (2 траты) объясняется использованием другой карты в этот период.
+-- Неравномерность активности по месяцам — отражение реального изменения трат в течение года.
+
 -- ==========================================
 -- Таблица макроэкономических показателей
 -- ==========================================
