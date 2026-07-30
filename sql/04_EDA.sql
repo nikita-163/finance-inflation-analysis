@@ -236,7 +236,8 @@ SELECT
     'raw' AS metric_type,
     COUNT(DISTINCT category) AS total_unique_category,
     COUNT(DISTINCT merchant) AS total_unique_merchant,
-    COUNT(DISTINCT status) AS total_unique_status     
+    COUNT(DISTINCT status) AS total_unique_status,
+    COUNT(DISTINCT transaction_type) AS total_unique_transaction_type    
 FROM finance.bank_transactions
 
 UNION ALL
@@ -245,10 +246,12 @@ SELECT
     'normalized' AS metric_type,
     COUNT(DISTINCT LOWER(TRIM(category))) AS total_normalized_unique_category,
     COUNT(DISTINCT LOWER(TRIM(merchant))) AS total_normalized_unique_merchant,
-    COUNT(DISTINCT LOWER(TRIM(status))) AS total_normalized_unique_status
+    COUNT(DISTINCT LOWER(TRIM(status))) AS total_normalized_unique_status,
+    COUNT(DISTINCT LOWER(TRIM(transaction_type))) AS total_normalized_unique_transaction_type  
 FROM finance.bank_transactions;
 
--- Количество уникальных категорий(25), продавцов(139), статусов(3) совпадает с количеством нормализованных уникальных категорий(25), продавцов(139), статусов(3). 
+-- Количество уникальных категорий(25), продавцов(139), статусов(3) и типов транзакций(2) 
+-- совпадает с количеством нормализованных уникальных категорий(25), продавцов(139), статусов(3) и типов транзакций(2). 
 -- Все справочные значения согласованы.
 
 -- ==========================================
