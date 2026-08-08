@@ -53,6 +53,7 @@
 - Python + pandas — обработка и анализ данных.
 - DataLens — визуализация результатов.
 - Git — контроль версий.
+- Claude — помощь в реализации проекта.
 
 ## Структура проекта
 
@@ -70,8 +71,8 @@ finance-inflation-analysis/
 │   ├── 03_data_quality_check.sql
 │   ├── 04_EDA.sql
 │   ├── 04a_data_cleaning.sql
-│   ├── 05_analysis_queries.sql
-│   └── 06_views.sql 
+│   ├── 05_views.sql 
+│   └── 06_analysis_queries.sql
 │
 ├── notebooks/
 │   └── analysis.ipynb         # дополнительный анализ на Python/pandas
