@@ -9,7 +9,7 @@ SELECT
   DATE_TRUNC('month', transaction_date) AS month,
   SUM(amount) AS month_expenses
 FROM finance.v_real_expenses
-GROUP BY DATE_TRUNC ('month', transaction_date)
+GROUP BY DATE_TRUNC('month', transaction_date)
 ORDER BY month;
 
 WITH monthly AS (
@@ -111,4 +111,53 @@ ORDER BY avg_monthly_expenses DESC;
 -- Расчёт через среднемесячные расходы (с учётом фактического числа месяцев в каждом квартале, 
 -- так как диапазон данных не совпадает с календарным годом) подтвердил ту же картину, что и первоначальный расчёт по доле:
 -- 8,4% трат приходится на первый квартал, 15,3% на второй, 24,7% на четвёртый и 51,7% на третий квартал.
--- Больше 50% трат приходится на 4 квартал, сезонность в расходах наблюдается.
+-- Больше 50% трат приходится на 3 квартал, сезонность в расходах наблюдается.
+
+---------------------------------------------------------------
+
+-- Вопрос:
+-- Насколько рост расходов соответствует уровню инфляции?
+
+WITH first_last_months_sum AS (
+  SELECT
+    SUM(amount) FILTER(WHERE transaction_date >= '2025-06-01' AND transaction_date < '2025-07-01') AS june_sum,
+    SUM(amount) FILTER(WHERE transaction_date >= '2026-05-01' AND transaction_date < '2026-06-01') AS may_sum
+  FROM finance.v_real_expenses
+)
+
+SELECT
+  'expenses_growth' AS indicator,
+  ROUND((may_sum - june_sum) / june_sum * 100, 2) AS pct_share
+FROM first_last_months_sum
+
+UNION ALL
+
+SELECT
+  'inflation_rate' AS indicator,
+  inflation_rate AS pct_share
+FROM finance.inflation
+WHERE "period" = '2026-05-01';
+
+-- Рост расходов за период (июнь 2025 – май 2026, пересекающийся диапазон обеих таблиц) 
+-- составил 10.77%, что в 2,03 раза превышает накопленную инфляцию за тот же период (5.31%).
+-- Можно сделать вывод, что личные расходы росли значительно быстрее официальной инфляции –
+-- Такой быстрый рост объясняется как и удорожанием товаров и услуг, так и изменением объёма и структуры трат.  
+-- Ограничение: сравнение построено на пересекающемся диапазоне дат (июнь 2025 – май 2026), 
+-- так как данные по инфляции не покрывают июнь 2026 (см. 03_data_quality_check.sql).
+
+---------------------------------------------------------------
+
+-- Вопрос:
+-- Какой вклад в снижение фактических расходов вносит кэшбэк?
+
+SELECT
+  SUM(amount) AS total_amount_expenses,
+  SUM(bonus_value) AS total_amount_cashback,
+  ROUND(SUM(bonus_value) / SUM(amount) * 100, 2) AS return_percentage
+FROM finance.v_real_expenses;
+
+-- Кешбэк с покупок покрывает 4% фактических расходов(за весь период данных, июнь 2025 – июнь 2026).
+-- Можно сделать вывод, что кешбэк покрывает малую долю расходов, 
+-- поэтому в будущем дополнительно стоит рассмотреть выбираемые категории кешбэка на месяц
+-- и сопоставить их с категориями трат, с целью увеличить получаемый кешбэк.
+
