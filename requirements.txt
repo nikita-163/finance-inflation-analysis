@@ -59,6 +59,7 @@ mistune==3.3.4
 nbclient==0.11.0
 nbconvert==7.17.1
 nbformat==5.11.1
+nbstripout==0.9.1
 nest-asyncio2==1.7.2
 notebook==7.6.2
 notebook_shim==0.2.4
@@ -79,6 +80,7 @@ pycparser==3.0
 Pygments==2.21.0
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
+python-dotenv==1.2.3
 python-json-logger==4.2.0
 pywinpty==3.0.5
 PyYAML==6.0.3
